@@ -30,13 +30,7 @@ def apply_custom_css():
         .stButton>button:hover {
             background-color: #9966CC;
         }
-        .upload-area {
-            border: 2px dashed #BB86FC;
-            border-radius: 10px;
-            padding: 2rem;
-            text-align: center;
-            margin-bottom: 1rem;
-        }
+        /* Removed the upload-area class styling */
         .success-message {
             background-color: #03DAC5;
             color: #000000;
@@ -112,12 +106,11 @@ def show_error_message(message="Conversion failed. Please try another PDF."):
     st.markdown(f'<div class="error-message">❌ {message}</div>', unsafe_allow_html=True)
 
 def create_upload_area(label="Drag and drop your PDF here", accept_multiple=False, key="pdf_uploader"):
-    """Create a styled upload area."""
-    st.markdown('<div class="upload-area">', unsafe_allow_html=True)
+    """Create a file upload area without the dotted border."""
+    # Removed the upload-area div wrapper
     if accept_multiple:
         uploaded_files = st.file_uploader(label, type="pdf", accept_multiple_files=True, key=key)
     else:
         uploaded_files = st.file_uploader(label, type="pdf", key=key)
-    st.markdown('</div>', unsafe_allow_html=True)
     
     return uploaded_files
