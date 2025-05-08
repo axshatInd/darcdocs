@@ -6,6 +6,7 @@ import tempfile
 from PIL import Image, ImageOps
 import numpy as np
 from datetime import datetime
+import zipfile
 
 # Set page configuration
 st.set_page_config(
@@ -241,6 +242,41 @@ def convert_pdf_to_dark_mode(input_file, progress_callback=None, bg_color="#0000
         st.error(f"Error processing PDF: {str(e)}")
         return None
 
+def process_batch(uploaded_files, bg_color, text_color, preserve_images, enhance_contrast, border_detection, table_detection):
+    """Process multiple PDF files and return them as a zip file."""
+    # Create a BytesIO object to store the zip file
+    zip_buffer = io.BytesIO()
+    
+    # Create a ZipFile object
+    with zipfile.ZipFile(zip_buffer, 'w') as zip_file:
+        # Process each PDF file
+        for i, uploaded_file in enumerate(uploaded_files):
+            # Update the status
+            st.text(f"Processing {i+1}/{len(uploaded_files)}: {uploaded_file.name}")
+            
+            # Convert the PDF to dark mode
+            result = convert_pdf_to_dark_mode(
+                uploaded_file,
+                bg_color=bg_color,
+                text_color=text_color,
+                preserve_images=preserve_images,
+                enhance_contrast=enhance_contrast,
+                border_detection=border_detection,
+                table_detection=table_detection
+            )
+            
+            if result:
+                # Generate a filename for the output
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                output_filename = f"dark_mode_{timestamp}_{uploaded_file.name}"
+                
+                # Add the PDF to the zip file
+                zip_file.writestr(output_filename, result.getvalue())
+    
+    # Reset the buffer position to the beginning
+    zip_buffer.seek(0)
+    return zip_buffer
+
 def main():
     st.title("🌙 DarcDocs")
     st.subheader("Convert PDFs to Dark Mode")
@@ -266,85 +302,134 @@ def main():
     - 📏 White borders
     """)
     
-    # File uploader
-    st.markdown('<div class="upload-area">', unsafe_allow_html=True)
-    uploaded_file = st.file_uploader("Drag and drop your PDF here", type="pdf")
-    st.markdown('</div>', unsafe_allow_html=True)
+    # Add tabs for single file and batch processing
+    tab1, tab2 = st.tabs(["Single PDF", "Batch Processing"])
     
-    if uploaded_file is not None:
-        # Display file info
-        file_details = {
-            "Filename": uploaded_file.name,
-            "File size": f"{uploaded_file.size / 1024:.2f} KB"
-        }
-        st.write("**File Details:**")
-        for key, value in file_details.items():
-            st.write(f"- {key}: {value}")
+    # Single PDF processing tab
+    with tab1:
+        # File uploader
+        st.markdown('<div class="upload-area">', unsafe_allow_html=True)
+        uploaded_file = st.file_uploader("Drag and drop your PDF here", type="pdf", key="single_pdf")
+        st.markdown('</div>', unsafe_allow_html=True)
         
-        # Process button
-        if st.button("Convert to Dark Mode"):
-            # Progress bar
-            progress_bar = st.progress(0)
-            status_text = st.empty()
+        if uploaded_file is not None:
+            # Display file info
+            file_details = {
+                "Filename": uploaded_file.name,
+                "File size": f"{uploaded_file.size / 1024:.2f} KB"
+            }
+            st.write("**File Details:**")
+            for key, value in file_details.items():
+                st.write(f"- {key}: {value}")
             
-            status_text.text("Processing PDF...")
-            
-            # Process the PDF
-            # Update the convert_pdf_to_dark_mode function call to include the new parameters
-            result = convert_pdf_to_dark_mode(
-                uploaded_file,
-                progress_callback=lambda p: progress_bar.progress(p),
-                bg_color=bg_color,
-                text_color=text_color,
-                preserve_images=preserve_images,
-                enhance_contrast=enhance_contrast,
-                border_detection=border_detection,
-                table_detection=table_detection
-            )
-            
-            if result:
-                # Generate a filename for the output
-                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                output_filename = f"dark_mode_{timestamp}_{uploaded_file.name}"
+            # Process button
+            if st.button("Convert to Dark Mode"):
+                # Progress bar
+                progress_bar = st.progress(0)
+                status_text = st.empty()
                 
-                # Success message
-                st.markdown(f'<div class="success-message">✅ Conversion complete!</div>', unsafe_allow_html=True)
+                status_text.text("Processing PDF...")
                 
-                # Download button
-                st.download_button(
-                    label="Download Dark Mode PDF",
-                    data=result,
-                    file_name=output_filename,
-                    mime="application/pdf"
+                # Process the PDF
+                result = convert_pdf_to_dark_mode(
+                    uploaded_file,
+                    progress_callback=lambda p: progress_bar.progress(p),
+                    bg_color=bg_color,
+                    text_color=text_color,
+                    preserve_images=preserve_images,
+                    enhance_contrast=enhance_contrast,
+                    border_detection=border_detection,
+                    table_detection=table_detection
                 )
                 
-                # Preview (optional)
-                with st.expander("Preview (first page only)"):
-                    try:
-                        # Create a temporary file to save the PDF for preview
-                        with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp_file:
-                            tmp_file.write(result.getvalue())
-                            tmp_path = tmp_file.name
-                        
-                        # Open the PDF and convert first page to image for preview
-                        doc = fitz.open(tmp_path)
-                        if len(doc) > 0:
-                            page = doc[0]
-                            pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
-                            img_data = pix.tobytes("png")
-                            st.image(img_data, caption="First Page Preview")
-                        doc.close()
-                        
-                        # Clean up the temporary file
-                        os.unlink(tmp_path)
-                    except Exception as e:
-                        st.error(f"Error generating preview: {str(e)}")
+                if result:
+                    # Generate a filename for the output
+                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    output_filename = f"dark_mode_{timestamp}_{uploaded_file.name}"
+                    
+                    # Success message
+                    st.markdown(f'<div class="success-message">✅ Conversion complete!</div>', unsafe_allow_html=True)
+                    
+                    # Download button
+                    st.download_button(
+                        label="Download Dark Mode PDF",
+                        data=result,
+                        file_name=output_filename,
+                        mime="application/pdf"
+                    )
+                    
+                    # Preview (optional)
+                    with st.expander("Preview (first page only)"):
+                        try:
+                            # Create a temporary file to save the PDF for preview
+                            with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp_file:
+                                tmp_file.write(result.getvalue())
+                                tmp_path = tmp_file.name
+                            
+                            # Open the PDF and convert first page to image for preview
+                            doc = fitz.open(tmp_path)
+                            if len(doc) > 0:
+                                page = doc[0]
+                                pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
+                                img_data = pix.tobytes("png")
+                                st.image(img_data, caption="First Page Preview")
+                            doc.close()
+                            
+                            # Clean up the temporary file
+                            os.unlink(tmp_path)
+                        except Exception as e:
+                            st.error(f"Error generating preview: {str(e)}")
             else:
                 st.markdown(f'<div class="error-message">❌ Conversion failed. Please try another PDF.</div>', unsafe_allow_html=True)
             
             # Reset progress
             progress_bar.empty()
             status_text.empty()
+    
+    # Batch processing tab
+    with tab2:
+        st.markdown('<div class="upload-area">', unsafe_allow_html=True)
+        uploaded_files = st.file_uploader("Drag and drop multiple PDFs here", type="pdf", accept_multiple_files=True, key="batch_pdfs")
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        if uploaded_files:
+            st.write(f"**{len(uploaded_files)} files selected:**")
+            for file in uploaded_files:
+                st.write(f"- {file.name} ({file.size / 1024:.2f} KB)")
+            
+            if st.button("Convert All to Dark Mode"):
+                # Create a status area
+                status_area = st.empty()
+                
+                # Process the batch
+                status_area.text("Processing batch...")
+                zip_buffer = process_batch(
+                    uploaded_files,
+                    bg_color,
+                    text_color,
+                    preserve_images,
+                    enhance_contrast,
+                    border_detection,
+                    table_detection
+                )
+                
+                # Success message
+                st.markdown(f'<div class="success-message">✅ Batch conversion complete!</div>', unsafe_allow_html=True)
+                
+                # Generate a filename for the zip
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                zip_filename = f"dark_mode_batch_{timestamp}.zip"
+                
+                # Download button for the zip file
+                st.download_button(
+                    label="Download All Converted PDFs",
+                    data=zip_buffer,
+                    file_name=zip_filename,
+                    mime="application/zip"
+                )
+                
+                # Clear the status area
+                status_area.empty()
     
     # Footer
     st.markdown("---")
