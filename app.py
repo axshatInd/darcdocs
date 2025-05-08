@@ -23,24 +23,25 @@ def main():
     options = create_sidebar()
     
     # Add tabs for single file and batch processing
-    tab1, tab2 = st.tabs(["Single PDF", "Batch Processing"])
+    tab1, tab2 = st.tabs(["✨ Single PDF", "📚 Batch Processing"])
     
     # Single PDF processing tab
     with tab1:
         # File uploader
-        uploaded_file = create_upload_area(key="single_pdf")
+        uploaded_file = create_upload_area(label="Transform Your PDF", key="single_pdf")
         
         if uploaded_file is not None:
             # Display file info
             show_file_details(uploaded_file)
             
             # Process button
-            if st.button("Convert to Dark Mode"):
+            if st.button("✨ Transform PDF with Custom Colors"):
                 # Progress bar
+                st.markdown("### 🔄 Processing Your PDF")
                 progress_bar = st.progress(0)
                 status_text = st.empty()
                 
-                status_text.text("Processing PDF...")
+                status_text.text("Applying your custom colors...")
                 
                 # Process the PDF
                 result = convert_pdf_to_dark_mode(
@@ -52,26 +53,26 @@ def main():
                 if result:
                     # Generate a filename for the output
                     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                    output_filename = f"dark_mode_{timestamp}_{uploaded_file.name}"
+                    output_filename = f"custom_{timestamp}_{uploaded_file.name}"
                     
                     # Success message
-                    show_success_message()
+                    show_success_message("✨ Transformation complete! Your PDF is ready to download.")
                     
                     # Download button
                     st.download_button(
-                        label="Download Dark Mode PDF",
+                        label="📥 Download Transformed PDF",
                         data=result,
                         file_name=output_filename,
                         mime="application/pdf"
                     )
                     
                     # Preview (optional)
-                    with st.expander("Preview (first page only)"):
+                    with st.expander("👁️ Preview (first page only)"):
                         img_data = preview_pdf(result)
                         if img_data:
                             st.image(img_data, caption="First Page Preview")
                 else:
-                    show_error_message()
+                    show_error_message("Transformation failed. Please try another PDF or adjust your settings.")
                 
                 # Reset progress
                 progress_bar.empty()
@@ -80,37 +81,41 @@ def main():
     # Batch processing tab
     with tab2:
         uploaded_files = create_upload_area(
-            label="Drag and drop multiple PDFs here", 
+            label="Transform Multiple PDFs", 
             accept_multiple=True, 
             key="batch_pdfs"
         )
         
         if uploaded_files:
-            st.write(f"**{len(uploaded_files)} files selected:**")
+            st.markdown("### 📚 Selected Files")
+            st.markdown('<div style="background-color: rgba(187, 134, 252, 0.1); padding: 15px; border-radius: 8px;">', unsafe_allow_html=True)
+            st.write(f"**{len(uploaded_files)} files ready for transformation:**")
             for file in uploaded_files:
-                st.write(f"- {file.name} ({file.size / 1024:.2f} KB)")
+                st.write(f"- **{file.name}** ({file.size / 1024:.2f} KB)")
+            st.markdown('</div>', unsafe_allow_html=True)
             
-            if st.button("Convert All to Dark Mode"):
+            if st.button("✨ Transform All PDFs"):
                 # Create a status area
+                st.markdown("### 🔄 Processing Your PDFs")
                 status_area = st.empty()
                 
                 # Process the batch
-                status_area.text("Processing batch...")
+                status_area.text("Applying your custom colors to all files...")
                 zip_buffer = process_batch(
                     uploaded_files,
                     **options
                 )
                 
                 # Success message
-                show_success_message("Batch conversion complete!")
+                show_success_message("✨ Batch transformation complete! Your PDFs are ready to download.")
                 
                 # Generate a filename for the zip
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                zip_filename = f"dark_mode_batch_{timestamp}.zip"
+                zip_filename = f"custom_pdfs_{timestamp}.zip"
                 
                 # Download button for the zip file
                 st.download_button(
-                    label="Download All Converted PDFs",
+                    label="📥 Download All Transformed PDFs",
                     data=zip_buffer,
                     file_name=zip_filename,
                     mime="application/zip"
@@ -121,7 +126,11 @@ def main():
     
     # Footer
     st.markdown("---")
-    st.markdown("Made with ❤️ by DarcDocs")
+    st.markdown("""
+    <div style="text-align: center; color: #BB86FC;">
+        <p>Made with ❤️ by DarcDocs | <a href="https://github.com" style="color: #03DAC5; text-decoration: none;">GitHub</a></p>
+    </div>
+    """, unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
