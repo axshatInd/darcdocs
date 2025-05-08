@@ -217,6 +217,19 @@ def main():
     st.title("🌙 DarcDocs")
     st.subheader("Convert PDFs to Dark Mode")
     
+    # Add a sidebar for customization options
+    with st.sidebar:
+        st.header("Customization Options")
+        bg_color = st.color_picker("Background Color", "#000000")
+        text_color = st.color_picker("Text Color", "#FFFFFF")
+        preserve_images = st.checkbox("Preserve Original Images", value=True)
+        enhance_contrast = st.checkbox("Enhance Text Contrast", value=False)
+        
+        st.markdown("---")
+        st.markdown("### Advanced Options")
+        border_detection = st.checkbox("Detect and Convert Borders", value=True)
+        table_detection = st.checkbox("Detect and Convert Tables", value=True)
+    
     st.markdown("""
     DarcDocs transforms your PDFs into dark mode for comfortable reading:
     - ⚫ Black backgrounds
@@ -249,9 +262,16 @@ def main():
             status_text.text("Processing PDF...")
             
             # Process the PDF
+            # Update the convert_pdf_to_dark_mode function call to include the new parameters
             result = convert_pdf_to_dark_mode(
                 uploaded_file,
-                progress_callback=lambda p: progress_bar.progress(p)
+                progress_callback=lambda p: progress_bar.progress(p),
+                bg_color=bg_color,
+                text_color=text_color,
+                preserve_images=preserve_images,
+                enhance_contrast=enhance_contrast,
+                border_detection=border_detection,
+                table_detection=table_detection
             )
             
             if result:
