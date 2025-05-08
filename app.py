@@ -81,11 +81,12 @@ def is_likely_border(contour, page_width, page_height, threshold=0.8):
     
     return is_horizontal_border or is_vertical_border or is_page_border
 
-def convert_pdf_to_dark_mode(input_file, progress_callback=None):
+def convert_pdf_to_dark_mode(input_file, progress_callback=None, bg_color="#000000", text_color="#FFFFFF", 
+                            preserve_images=True, enhance_contrast=False, border_detection=True, table_detection=True):
     """
     Convert a PDF to dark mode:
-    - Black background
-    - White text
+    - Black background (or custom color)
+    - White text (or custom color)
     - Preserved images
     - White borders
     """
@@ -96,6 +97,10 @@ def convert_pdf_to_dark_mode(input_file, progress_callback=None):
         
         # Create a new PDF for the output
         out_doc = fitz.open()
+        
+        # Convert hex color to RGB tuple (0-1 range)
+        bg_rgb = tuple(int(bg_color.lstrip('#')[i:i+2], 16)/255 for i in (0, 2, 4))
+        text_rgb = tuple(int(text_color.lstrip('#')[i:i+2], 16)/255 for i in (0, 2, 4))
         
         for page_num, page in enumerate(doc):
             # Update progress
@@ -109,11 +114,11 @@ def convert_pdf_to_dark_mode(input_file, progress_callback=None):
             page_width = page.rect.width
             page_height = page.rect.height
             
-            # First, fill the entire page with black
-            out_page.draw_rect(fitz.Rect(0, 0, page_width, page_height), color=(0, 0, 0), fill=(0, 0, 0))
+            # First, fill the entire page with the background color
+            out_page.draw_rect(fitz.Rect(0, 0, page_width, page_height), color=bg_rgb, fill=bg_rgb)
             
             try:
-                # Process text: extract and redraw in white
+                # Process text: extract and redraw with custom color
                 text_blocks = page.get_text("dict")["blocks"]
                 for block in text_blocks:
                     if block["type"] == 0:  # Text block
@@ -128,7 +133,7 @@ def convert_pdf_to_dark_mode(input_file, progress_callback=None):
                                         text,
                                         fontname=span["font"],
                                         fontsize=span["size"],
-                                        color=(1, 1, 1)  # White color
+                                        color=text_rgb  # Use custom text color
                                     )
                                 except RuntimeError as font_error:
                                     # If original font fails, use a fallback font
@@ -138,7 +143,7 @@ def convert_pdf_to_dark_mode(input_file, progress_callback=None):
                                             text,
                                             fontname="helv",  # Use Helvetica as fallback
                                             fontsize=span["size"],
-                                            color=(1, 1, 1)
+                                            color=text_rgb  # Use custom text color
                                         )
                                     else:
                                         # Re-raise if it's not a font error
@@ -162,41 +167,64 @@ def convert_pdf_to_dark_mode(input_file, progress_callback=None):
                 # Insert the inverted image
                 out_page.insert_image(fitz.Rect(0, 0, page_width, page_height), stream=img_bytes.getvalue())
             
-            try:
-                # Process images: extract and redraw as is
-                image_list = page.get_images(full=True)
-                for img_index, img_info in enumerate(image_list):
-                    xref = img_info[0]
-                    base_image = doc.extract_image(xref)
-                    image_bytes = base_image["image"]
-                    
-                    # Convert image bytes to PIL Image
-                    img = Image.open(io.BytesIO(image_bytes))
-                    
-                    # Get image position on the page
-                    img_rect = page.get_image_bbox(img_info)
-                    
-                    # Insert the image back into the new page
-                    out_page.insert_image(img_rect, stream=image_bytes)
-            except Exception as img_error:
-                # If image extraction fails, continue with the rest of the process
-                st.warning(f"Image extraction failed on page {page_num+1}. Some images may not be preserved.")
+            # Only process images if preserve_images is True
+            if preserve_images:
+                try:
+                    # Process images: extract and redraw as is
+                    image_list = page.get_images(full=True)
+                    for img_index, img_info in enumerate(image_list):
+                        xref = img_info[0]
+                        base_image = doc.extract_image(xref)
+                        image_bytes = base_image["image"]
+                        
+                        # Convert image bytes to PIL Image
+                        img = Image.open(io.BytesIO(image_bytes))
+                        
+                        # Get image position on the page
+                        img_rect = page.get_image_bbox(img_info)
+                        
+                        # Insert the image back into the new page
+                        out_page.insert_image(img_rect, stream=image_bytes)
+                except Exception as img_error:
+                    # If image extraction fails, continue with the rest of the process
+                    st.warning(f"Image extraction failed on page {page_num+1}. Some images may not be preserved.")
             
-            try:
-                # Process borders: detect and convert to white
-                # Get all drawings on the page
-                paths = page.get_drawings()
-                for path in paths:
-                    for item in path["items"]:
-                        if item[0] == "re":  # Rectangle
-                            rect = fitz.Rect(item[1])
-                            # Check if this rectangle is likely a border
-                            if is_likely_border(rect, page_width, page_height):
-                                # Draw white border
-                                out_page.draw_rect(rect, color=(1, 1, 1), fill=(1, 1, 1))
-            except Exception as border_error:
-                # If border detection fails, continue with the rest of the process
-                st.warning(f"Border detection failed on page {page_num+1}. Some borders may not be converted.")
+            # Only process borders if border_detection is True
+            if border_detection:
+                try:
+                    # Process borders: detect and convert to white
+                    # Get all drawings on the page
+                    paths = page.get_drawings()
+                    for path in paths:
+                        for item in path["items"]:
+                            if item[0] == "re":  # Rectangle
+                                rect = fitz.Rect(item[1])
+                                # Check if this rectangle is likely a border
+                                if is_likely_border(rect, page_width, page_height):
+                                    # Draw border with text color
+                                    out_page.draw_rect(rect, color=text_rgb, fill=text_rgb)
+                except Exception as border_error:
+                    # If border detection fails, continue with the rest of the process
+                    st.warning(f"Border detection failed on page {page_num+1}. Some borders may not be converted.")
+            
+            # Process tables if table_detection is True
+            if table_detection:
+                try:
+                    # Simple table detection (looking for grid-like structures)
+                    # This is a simplified approach - real table detection would be more complex
+                    paths = page.get_drawings()
+                    for path in paths:
+                        for item in path["items"]:
+                            if item[0] == "l":  # Line
+                                # Draw lines with text color
+                                out_page.draw_line(
+                                    fitz.Point(item[1][0], item[1][1]),
+                                    fitz.Point(item[1][2], item[1][3]),
+                                    color=text_rgb
+                                )
+                except Exception as table_error:
+                    # If table detection fails, continue with the rest of the process
+                    pass
         
         # Save the output PDF to a bytes buffer
         output_buffer = io.BytesIO()
