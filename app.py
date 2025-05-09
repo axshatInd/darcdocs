@@ -23,7 +23,7 @@ def main():
     options = create_sidebar()
     
     # Add tabs for single file and batch processing
-    tab1, tab2 = st.tabs(["✨ Single PDF", "📚 Batch Processing"])
+    tab1, tab2 = st.tabs(["Single PDF", "Batch Processing"])
     
     # Single PDF processing tab
     with tab1:
@@ -35,9 +35,9 @@ def main():
             show_file_details(uploaded_file)
             
             # Process button
-            if st.button("✨ Transform PDF with Custom Colors"):
+            if st.button("Transform PDF"):
                 # Progress bar
-                st.markdown("### 🔄 Processing Your PDF")
+                st.markdown("### Processing Your PDF")
                 progress_bar = st.progress(0)
                 status_text = st.empty()
                 
@@ -56,18 +56,18 @@ def main():
                     output_filename = f"custom_{timestamp}_{uploaded_file.name}"
                     
                     # Success message
-                    show_success_message("✨ Transformation complete! Your PDF is ready to download.")
+                    show_success_message("Transformation complete! Your PDF is ready to download.")
                     
                     # Download button
                     st.download_button(
-                        label="📥 Download Transformed PDF",
+                        label="Download Transformed PDF",
                         data=result,
                         file_name=output_filename,
                         mime="application/pdf"
                     )
                     
                     # Preview (optional)
-                    with st.expander("👁️ Preview (first page only)"):
+                    with st.expander("Preview (first page only)"):
                         img_data = preview_pdf(result)
                         if img_data:
                             st.image(img_data, caption="First Page Preview")
@@ -87,16 +87,16 @@ def main():
         )
         
         if uploaded_files:
-            st.markdown("### 📚 Selected Files")
-            st.markdown('<div style="background-color: rgba(187, 134, 252, 0.1); padding: 15px; border-radius: 8px;">', unsafe_allow_html=True)
+            st.markdown("### Selected Files")
+            st.markdown('<div class="glass-container">', unsafe_allow_html=True)
             st.write(f"**{len(uploaded_files)} files ready for transformation:**")
             for file in uploaded_files:
                 st.write(f"- **{file.name}** ({file.size / 1024:.2f} KB)")
             st.markdown('</div>', unsafe_allow_html=True)
             
-            if st.button("✨ Transform All PDFs"):
+            if st.button("Transform All PDFs"):
                 # Create a status area
-                st.markdown("### 🔄 Processing Your PDFs")
+                st.markdown("### Processing Your PDFs")
                 status_area = st.empty()
                 
                 # Process the batch
@@ -107,7 +107,7 @@ def main():
                 )
                 
                 # Success message
-                show_success_message("✨ Batch transformation complete! Your PDFs are ready to download.")
+                show_success_message("Batch transformation complete! Your PDFs are ready to download.")
                 
                 # Generate a filename for the zip
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -115,7 +115,7 @@ def main():
                 
                 # Download button for the zip file
                 st.download_button(
-                    label="📥 Download All Transformed PDFs",
+                    label="Download All Transformed PDFs",
                     data=zip_buffer,
                     file_name=zip_filename,
                     mime="application/zip"
@@ -127,7 +127,7 @@ def main():
     # Footer
     st.markdown("---")
     st.markdown("""
-    <div style="text-align: center; color: #BB86FC;">
+    <div style="text-align: center; color: #4b6cb7;">
         <p>&copy; DarcDocs 2025</p>
     </div>
     """, unsafe_allow_html=True)
