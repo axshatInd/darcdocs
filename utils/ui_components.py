@@ -49,6 +49,17 @@ def apply_custom_css():
             margin-bottom: 20px;
         }
         
+        /* Text alignment for different screen sizes */
+        @media (max-width: 768px) {
+            .glass-container p, 
+            .glass-container li,
+            .success-message,
+            .error-message,
+            .stMarkdown p {
+                text-align: justify !important;
+            }
+        }
+        
         /* Header styling */
         h1, h2, h3 {
             font-weight: 600;
@@ -245,7 +256,7 @@ def show_app_header():
     st.markdown("""
     <div class="glass-container">
         <h3 style="margin-top: 0;">Transform Your Reading Experience</h3>
-        <p>DarcDocs lets you personalize PDFs with custom colors for comfortable reading in any environment:</p>
+        <p class="justify-text">DarcDocs lets you personalize PDFs with custom colors for comfortable reading in any environment:</p>
         <ul>
             <li><strong>Custom Background Colors</strong> - From pitch black to any color you prefer</li>
             <li><strong>Custom Text Colors</strong> - Choose the perfect text color for readability</li>
