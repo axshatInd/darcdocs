@@ -237,3 +237,28 @@ def create_upload_area(label="Drag and drop your PDF here", accept_multiple=Fals
         )
     
     return uploaded_files
+    """Create a file upload area with enhanced styling."""
+    st.markdown(f"""
+    <div style="text-align: center; margin-bottom: 10px;">
+        <h3>{label}</h3>
+        <p style="color: #BB86FC; font-size: 0.9rem;">Click to browse or drag and drop</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    if accept_multiple:
+        uploaded_files = st.file_uploader(
+            label, 
+            type="pdf", 
+            accept_multiple_files=True, 
+            key=key,
+            label_visibility="collapsed"  # Hide the label but keep it for accessibility
+        )
+    else:
+        uploaded_files = st.file_uploader(
+            label, 
+            type="pdf", 
+            key=key,
+            label_visibility="collapsed"  # Hide the label but keep it for accessibility
+        )
+    
+    return uploaded_files
