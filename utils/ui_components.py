@@ -83,20 +83,38 @@ def apply_custom_css():
         
         /* Button styling */
         .stButton>button {
-            background-color: #ffffff;
-            color: #000000;
+            background-color: #1E1E1E;
+            color: #03DAC5 !important; /* Always green text */
             border-radius: 8px;
             padding: 0.6rem 1.2rem;
             font-weight: 500;
-            border: 1px solid rgba(0,0,0,0.1);
+            border: 1px solid rgba(255,255,255,0.1);
             transition: all 0.3s ease;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
         
         .stButton>button:hover {
-            background-color: #f8f9fa;
+            background-color: #2D2D2D;
             transform: translateY(-2px);
-            box-shadow: 0 6px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 6px 8px rgba(0,0,0,0.2);
+        }
+        
+        /* Download button specific styling */
+        .stDownloadButton>button {
+            background-color: #1E1E1E !important;
+            color: #03DAC5 !important; /* Always green text */
+            border-radius: 8px;
+            padding: 0.6rem 1.2rem;
+            font-weight: 500;
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .stDownloadButton>button:hover {
+            background-color: #2D2D2D !important;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(0,0,0,0.2);
         }
         
         /* Message styling */
