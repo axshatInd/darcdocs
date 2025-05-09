@@ -25,7 +25,8 @@ def is_likely_border(contour, page_width, page_height, threshold=0.8):
     return is_horizontal_border or is_vertical_border or is_page_border
 
 def convert_pdf_to_dark_mode(input_file, progress_callback=None, bg_color="#000000", text_color="#FFFFFF", 
-                            preserve_images=True, enhance_contrast=False, border_detection=True, table_detection=True):
+                            preserve_images=True, enhance_contrast=False, border_detection=True, table_detection=True,
+                            use_image_conversion=False, image_quality=2.0):
     """
     Convert a PDF to dark mode:
     - Black background (or custom color)
@@ -60,58 +61,85 @@ def convert_pdf_to_dark_mode(input_file, progress_callback=None, bg_color="#0000
             # First, fill the entire page with the background color
             out_page.draw_rect(fitz.Rect(0, 0, page_width, page_height), color=bg_rgb, fill=bg_rgb)
             
-            try:
-                # Process text: extract and redraw with custom color
-                text_blocks = page.get_text("dict")["blocks"]
-                for block in text_blocks:
-                    if block["type"] == 0:  # Text block
-                        for line in block["lines"]:
-                            for span in line["spans"]:
-                                text = span["text"]
-                                bbox = fitz.Rect(span["bbox"])
-                                try:
-                                    # Try to use the original font
-                                    out_page.insert_text(
-                                        bbox.tl,  # top-left point
-                                        text,
-                                        fontname=span["font"],
-                                        fontsize=span["size"],
-                                        color=text_rgb  # Use custom text color
-                                    )
-                                except RuntimeError as font_error:
-                                    # If original font fails, use a fallback font
-                                    if "FT_New_Memory_Face" in str(font_error):
-                                        out_page.insert_text(
-                                            bbox.tl,
-                                            text,
-                                            fontname="helv",  # Use Helvetica as fallback
-                                            fontsize=span["size"],
-                                            color=text_rgb  # Use custom text color
-                                        )
-                                    else:
-                                        # Re-raise if it's not a font error
-                                        raise
-            except Exception as text_error:
-                # If text extraction fails, try to render the page as an image
-                st.warning(f"Text extraction failed on page {page_num+1}, using image-based conversion.")
-                pix = page.get_pixmap(alpha=False)
+            # If image-based conversion is selected, use that approach
+            if use_image_conversion:
+                # Render the page as an image with higher quality
+                pix = page.get_pixmap(alpha=False, matrix=fitz.Matrix(image_quality, image_quality))
                 img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
                 
                 # Convert to grayscale, invert colors, and convert back to RGB
                 img_gray = ImageOps.grayscale(img)
+                
+                # Enhance contrast if requested
+                if enhance_contrast:
+                    from PIL import ImageEnhance
+                    enhancer = ImageEnhance.Contrast(img_gray)
+                    img_gray = enhancer.enhance(1.5)  # Increase contrast by 50%
+                
                 img_inverted = ImageOps.invert(img_gray)
                 img_rgb = img_inverted.convert("RGB")
                 
                 # Convert PIL Image to bytes
                 img_bytes = io.BytesIO()
-                img_rgb.save(img_bytes, format="PNG")
+                img_rgb.save(img_bytes, format="PNG", quality=95)  # Use high quality for PNG
                 img_bytes.seek(0)
                 
                 # Insert the inverted image
                 out_page.insert_image(fitz.Rect(0, 0, page_width, page_height), stream=img_bytes.getvalue())
+            else:
+                # Use the original text-based approach
+                try:
+                    # Process text: extract and redraw with custom color
+                    text_blocks = page.get_text("dict")["blocks"]
+                    for block in text_blocks:
+                        if block["type"] == 0:  # Text block
+                            for line in block["lines"]:
+                                for span in line["spans"]:
+                                    text = span["text"]
+                                    bbox = fitz.Rect(span["bbox"])
+                                    try:
+                                        # Try to use the original font
+                                        out_page.insert_text(
+                                            bbox.tl,  # top-left point
+                                            text,
+                                            fontname=span["font"],
+                                            fontsize=span["size"],
+                                            color=text_rgb  # Use custom text color
+                                        )
+                                    except RuntimeError as font_error:
+                                        # If original font fails, use a fallback font
+                                        if "FT_New_Memory_Face" in str(font_error):
+                                            out_page.insert_text(
+                                                bbox.tl,
+                                                text,
+                                                fontname="helv",  # Use Helvetica as fallback
+                                                fontsize=span["size"],
+                                                color=text_rgb  # Use custom text color
+                                            )
+                                        else:
+                                            # Re-raise if it's not a font error
+                                            raise
+                except Exception as text_error:
+                    # If text extraction fails, try to render the page as an image
+                    st.warning(f"Text extraction failed on page {page_num+1}, using image-based conversion.")
+                    pix = page.get_pixmap(alpha=False, matrix=fitz.Matrix(image_quality, image_quality))
+                    img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+                    
+                    # Convert to grayscale, invert colors, and convert back to RGB
+                    img_gray = ImageOps.grayscale(img)
+                    img_inverted = ImageOps.invert(img_gray)
+                    img_rgb = img_inverted.convert("RGB")
+                    
+                    # Convert PIL Image to bytes
+                    img_bytes = io.BytesIO()
+                    img_rgb.save(img_bytes, format="PNG", quality=95)
+                    img_bytes.seek(0)
+                    
+                    # Insert the inverted image
+                    out_page.insert_image(fitz.Rect(0, 0, page_width, page_height), stream=img_bytes.getvalue())
             
-            # Only process images if preserve_images is True
-            if preserve_images:
+            # Only process images if preserve_images is True and we're not using image-based conversion
+            if preserve_images and not use_image_conversion:
                 try:
                     # Process images: extract and redraw as is
                     image_list = page.get_images(full=True)
@@ -132,8 +160,8 @@ def convert_pdf_to_dark_mode(input_file, progress_callback=None, bg_color="#0000
                     # If image extraction fails, continue with the rest of the process
                     st.warning(f"Image extraction failed on page {page_num+1}. Some images may not be preserved.")
             
-            # Only process borders if border_detection is True
-            if border_detection:
+            # Only process borders if border_detection is True and we're not using image-based conversion
+            if border_detection and not use_image_conversion:
                 try:
                     # Process borders: detect and convert to white
                     # Get all drawings on the page
@@ -150,8 +178,8 @@ def convert_pdf_to_dark_mode(input_file, progress_callback=None, bg_color="#0000
                     # If border detection fails, continue with the rest of the process
                     st.warning(f"Border detection failed on page {page_num+1}. Some borders may not be converted.")
             
-            # Process tables if table_detection is True
-            if table_detection:
+            # Process tables if table_detection is True and we're not using image-based conversion
+            if table_detection and not use_image_conversion:
                 try:
                     # Simple table detection (looking for grid-like structures)
                     # This is a simplified approach - real table detection would be more complex

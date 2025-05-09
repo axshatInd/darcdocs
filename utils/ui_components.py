@@ -105,6 +105,17 @@ def apply_custom_css():
             background-color: #1E1E1E;
         }
         
+        /* Reduce sidebar top padding */
+        section[data-testid="stSidebar"] .block-container {
+            padding-top: 0 !important;
+            margin-top: 0 !important;
+        }
+        
+        /* Reduce space in sidebar elements */
+        .sidebar .element-container {
+            margin-bottom: 0.5rem;
+        }
+        
         /* File uploader styling */
         .stFileUploader > div > button {
             background-color: #BB86FC;
@@ -140,7 +151,7 @@ def apply_custom_css():
 def create_sidebar():
     """Create the sidebar with customization options."""
     with st.sidebar:
-        st.markdown('<h2 style="text-align: center;">✨ Color Studio</h2>', unsafe_allow_html=True)
+        st.markdown('<h2 style="text-align: center; margin-top: -40px;">✨ Color Studio</h2>', unsafe_allow_html=True)
         
         st.markdown('### 🎨 Color Palette')
         bg_color = st.color_picker("Background Color", "#000000")
@@ -154,6 +165,17 @@ def create_sidebar():
         st.markdown("### ⚙️ Advanced Options")
         border_detection = st.checkbox("Detect and Convert Borders", value=True)
         table_detection = st.checkbox("Detect and Convert Tables", value=True)
+        
+        # New option for image-based conversion
+        st.markdown("### 📐 Layout Options")
+        use_image_conversion = st.checkbox("Preserve Layout (Image-Based)", value=False, 
+                                          help="Use image-based conversion to preserve exact layout and alignment. May affect text sharpness.")
+        
+        # Image quality slider (only shown when image-based conversion is selected)
+        image_quality = 2.0
+        if use_image_conversion:
+            image_quality = st.slider("Image Quality", min_value=1.0, max_value=4.0, value=2.0, step=0.5,
+                                     help="Higher values produce sharper text but larger files")
         
         # Preview box
         st.markdown("### 👁️ Live Preview")
@@ -170,7 +192,9 @@ def create_sidebar():
         "preserve_images": preserve_images,
         "enhance_contrast": enhance_contrast,
         "border_detection": border_detection,
-        "table_detection": table_detection
+        "table_detection": table_detection,
+        "use_image_conversion": use_image_conversion,
+        "image_quality": image_quality
     }
 
 def show_app_header():

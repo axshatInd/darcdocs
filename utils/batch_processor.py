@@ -4,7 +4,8 @@ import zipfile
 from datetime import datetime
 from .pdf_processor import convert_pdf_to_dark_mode
 
-def process_batch(uploaded_files, bg_color, text_color, preserve_images, enhance_contrast, border_detection, table_detection):
+def process_batch(uploaded_files, bg_color, text_color, preserve_images, enhance_contrast, 
+                 border_detection, table_detection, use_image_conversion=False, image_quality=2.0):
     """Process multiple PDF files and return them as a zip file."""
     # Create a BytesIO object to store the zip file
     zip_buffer = io.BytesIO()
@@ -24,7 +25,9 @@ def process_batch(uploaded_files, bg_color, text_color, preserve_images, enhance
                 preserve_images=preserve_images,
                 enhance_contrast=enhance_contrast,
                 border_detection=border_detection,
-                table_detection=table_detection
+                table_detection=table_detection,
+                use_image_conversion=use_image_conversion,
+                image_quality=image_quality
             )
             
             if result:
