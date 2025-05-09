@@ -128,7 +128,7 @@ def main():
     st.markdown("---")
     st.markdown("""
     <div style="text-align: center; color: #BB86FC;">
-        <p>Made with ❤️ by DarcDocs | <a href="https://github.com" style="color: #03DAC5; text-decoration: none;">GitHub</a></p>
+        <p>&copy; DarcDocs 2025</p>
     </div>
     """, unsafe_allow_html=True)
 
