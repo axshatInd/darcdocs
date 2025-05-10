@@ -15,7 +15,8 @@ DarcDocs is a Python application that transforms PDFs with custom colors for com
 ## 🚀 Installation
 
 1. Clone this repository
-2. Install the required dependencies:
+2. Install the required dependencies, and run the application through streamlit on localhost:
 
 ```bash
 pip install -r requirements.txt
+streamlit run app.py
